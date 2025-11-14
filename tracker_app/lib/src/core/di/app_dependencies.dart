@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
-/// Contenedor de dependencias globales. Más adelante envolveremos
-/// `child` con MultiRepositoryProvider/MultiBlocProvider cuando
-/// existan repos y blocs compartidos. Por ahora devolvemos el
-/// widget directamente para evitar asserts del paquete `nested`.
+import '../../auth/data/firebase_auth_repository.dart';
+import '../../auth/domain/repositories/auth_repository.dart';
+import '../../auth/presentation/bloc/auth_bloc.dart';
+
 class AppDependencies extends StatelessWidget {
   const AppDependencies({required this.child, super.key});
 
@@ -11,6 +12,20 @@ class AppDependencies extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return child;
+    return MultiRepositoryProvider(
+      providers: [
+        RepositoryProvider<AuthRepository>(
+          create: (_) => FirebaseAuthRepository(),
+        ),
+      ],
+      child: MultiBlocProvider(
+        providers: [
+          BlocProvider<AuthBloc>(
+            create: (context) => AuthBloc(context.read<AuthRepository>()),
+          ),
+        ],
+        child: child,
+      ),
+    );
   }
 }

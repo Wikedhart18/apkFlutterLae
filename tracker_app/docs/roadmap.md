@@ -1,19 +1,20 @@
 ﻿# Roadmap de Desarrollo
 
 ## Estado actual
-- Proyecto Flutter base creado con `flutter create`.
-- Proyecto probado con `flutter run` (Chrome).
+- Proyecto Flutter base creado con `flutter create` y probado en Web.
 - Firebase configurado con FlutterFire CLI (`apkrastreo-c6f87`) y `firebase_options.dart`.
-- Dependencias clave aÃ±adidas: Auth, Firestore, Messaging, Maps, Geolocator, Secure Storage, Bloc.
-- Se creÃ³ la estructura `lib/src` con mÃ³dulos `core`, `auth`, `tracking`, `packages` y un `app.dart` central.
+- Dependencias clave aÃ±adidas (Auth, Firestore, Messaging, Maps, Geolocator, Secure Storage, Bloc, Dartz).
+- Arquitectura `lib/src` con mÃ³dulos `core`, `auth`, `tracking`, `packages` y `app.dart`.
+- Repositorio de Auth (FirebaseAuth + Firestore) + `AuthBloc` creados.
+- Pantallas Auth (`AuthGate`, `Login`, `Register`) conectadas al router, AppShell con saludo y logout.
 
 ## PrÃ³ximos pasos inmediatos
-1. Implementar flujo Auth (login/registro/roles) usando Firebase Auth.
-2. Crear capa de datos para paquetes y ubicaciones (Firestore/RTDB).
-3. Agregar integraciÃ³n bÃ¡sica de geolocalizaciÃ³n (chofer) y mapa (cliente).
-4. DiseÃ±ar UI inicial cliente vs chofer (pantallas de dashboard/resumen).
-5. Configurar backend realtime (Firestore + Cloud Functions o Supabase) y plan del dashboard web.
-6. Definir estrategia de despliegue/testing (QA interna + demo comercial).
+1. Estabilizar flujos de autenticaciÃ³n (validaciones adicionales, errores locales, reset). 
+2. Crear capa de datos de paquetes (`packages/`) y endpoints Firestore/RTDB.
+3. Implementar tracking en vivo: stream de ubicaciÃ³n chofer + listener en cliente.
+4. DiseÃ±ar UI diferenciada cliente vs chofer (Home dashboards, lista de paquetes).
+5. Configurar notificaciones push (FCM) y canales por paquete.
+6. Planificar backend complementario (Cloud Functions/Supabase) para lÃ³gica avanzada.
 
 ## Futuras iteraciones
 - Persistencia offline y reintentos en tracking.
