@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "242295209989",
+    "firebase_url": "https://apkrastreo-c6f87-default-rtdb.firebaseio.com",
+    "project_id": "apkrastreo-c6f87",
+    "storage_bucket": "apkrastreo-c6f87.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:242295209989:android:b7afb628c54a3794491c6c",
+        "android_client_info": {
+          "package_name": "com.example.tracker_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBp84UjsPHx_6UbFjCyKRI_0HzQ2JUvh0w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
