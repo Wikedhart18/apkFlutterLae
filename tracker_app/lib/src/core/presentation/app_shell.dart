@@ -227,7 +227,21 @@ class _PackagesBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (user == null) {
-      return const Center(child: Text('Inicia sesión para ver tus paquetes'));
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Inicia sesión para ver tus paquetes'),
+            const SizedBox(height: 16),
+            FilledButton(
+              onPressed: () {
+                Navigator.of(context).pushNamed(AppRouter.login);
+              },
+              child: const Text('Ir a iniciar sesión'),
+            ),
+          ],
+        ),
+      );
     }
 
     return BlocBuilder<PackageWatcherCubit, PackageWatcherState>(
