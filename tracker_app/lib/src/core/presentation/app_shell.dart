@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:latlong2/latlong.dart';
 
 import '../../auth/domain/entities/app_user.dart';
 import '../../auth/domain/repositories/user_repository.dart';
@@ -478,6 +480,10 @@ class _PackageDetailSheetState extends State<_PackageDetailSheet> {
           Text('Chofer: ${widget.package.choferId ?? 'Sin asignar'}'),
           if (widget.package.destino != null)
             Text('Destino: ${widget.package.destino}'),
+          const SizedBox(height: 12),
+          _StatusTimeline(current: _status),
+          const SizedBox(height: 12),
+          _MapPreview(package: widget.package),
           const SizedBox(height: 16),
           if (_error != null)
             Text(_error!, style: const TextStyle(color: Colors.red)),
@@ -549,6 +555,95 @@ class _PackageDetailSheetState extends State<_PackageDetailSheet> {
           ),
           const SizedBox(height: 12),
         ],
+      ),
+    );
+  }
+}
+
+class _StatusTimeline extends StatelessWidget {
+  const _StatusTimeline({required this.current});
+
+  final PackageStatus current;
+
+  @override
+  Widget build(BuildContext context) {
+    final statuses = PackageStatus.values;
+    return Wrap(
+      spacing: 8,
+      runSpacing: 4,
+      children: statuses
+          .map(
+            (status) => Chip(
+              avatar: Icon(
+                Icons.circle,
+                size: 14,
+                color: status.index <= current.index
+                    ? Colors.green
+                    : Colors.grey.shade400,
+              ),
+              label: Text(status.name),
+              backgroundColor: status.index <= current.index
+                  ? Colors.green.shade50
+                  : Colors.grey.shade200,
+            ),
+          )
+          .toList(),
+    );
+  }
+}
+
+class _MapPreview extends StatelessWidget {
+  const _MapPreview({required this.package});
+
+  final Package package;
+
+  bool get _hasLocation => package.lastLat != null && package.lastLng != null;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_hasLocation) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade300),
+        ),
+        child: const Text(
+          'Aún no hay ubicación registrada',
+          textAlign: TextAlign.center,
+        ),
+      );
+    }
+
+    final center = LatLng(package.lastLat!, package.lastLng!);
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: SizedBox(
+        height: 220,
+        child: FlutterMap(
+          options: MapOptions(initialCenter: center, initialZoom: 14),
+          children: [
+            TileLayer(
+              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+              userAgentPackageName: 'com.example.tracker_app',
+            ),
+            MarkerLayer(
+              markers: [
+                Marker(
+                  width: 40,
+                  height: 40,
+                  point: center,
+                  child: const Icon(
+                    Icons.location_on,
+                    color: Colors.red,
+                    size: 32,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
