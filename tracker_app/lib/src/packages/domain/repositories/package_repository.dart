@@ -2,6 +2,7 @@ import 'package:dartz/dartz.dart';
 
 import 'package:tracker_app/src/auth/domain/entities/app_user.dart';
 import '../entities/package.dart';
+import '../entities/location_point.dart';
 
 abstract class PackageRepository {
   Stream<List<Package>> watchPackagesForUser(AppUser user);
@@ -26,6 +27,13 @@ abstract class PackageRepository {
   });
 
   Future<Either<String, Package>> updateLocation({
+    required String packageId,
+    required double lat,
+    required double lng,
+  });
+
+  Stream<List<LocationPoint>> watchLocationHistory(String packageId);
+  Future<void> addLocationPoint({
     required String packageId,
     required double lat,
     required double lng,

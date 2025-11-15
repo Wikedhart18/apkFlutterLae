@@ -3,6 +3,7 @@ import 'package:dartz/dartz.dart';
 
 import 'package:tracker_app/src/auth/domain/entities/app_user.dart';
 import '../domain/entities/package.dart';
+import '../domain/entities/location_point.dart';
 import '../domain/repositories/package_repository.dart';
 
 class FirebasePackageRepository implements PackageRepository {
@@ -129,10 +130,59 @@ class FirebasePackageRepository implements PackageRepository {
         'estado': PackageStatus.enRuta.name,
         'updatedAt': FieldValue.serverTimestamp(),
       });
+      await _firestore
+          .collection(_collection)
+          .doc(packageId)
+          .collection('locations')
+          .add({
+            'lat': lat,
+            'lng': lng,
+            'timestamp': FieldValue.serverTimestamp(),
+          });
       final doc = await _firestore.collection(_collection).doc(packageId).get();
       return right(_fromDoc(doc.id, doc.data()!));
     } catch (e) {
       return left('No se pudo actualizar la ubicación');
     }
+  }
+
+  @override
+  Stream<List<LocationPoint>> watchLocationHistory(String packageId) {
+    return _firestore
+        .collection(_collection)
+        .doc(packageId)
+        .collection('locations')
+        .orderBy('timestamp', descending: false)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map(
+                (doc) => LocationPoint(
+                  lat: (doc['lat'] as num).toDouble(),
+                  lng: (doc['lng'] as num).toDouble(),
+                  timestamp:
+                      ((doc['timestamp'] as Timestamp?)?.toDate()) ??
+                      DateTime.fromMillisecondsSinceEpoch(0),
+                ),
+              )
+              .toList(),
+        );
+  }
+
+  @override
+  Future<void> addLocationPoint({
+    required String packageId,
+    required double lat,
+    required double lng,
+  }) async {
+    await _firestore
+        .collection(_collection)
+        .doc(packageId)
+        .collection('locations')
+        .add({
+          'lat': lat,
+          'lng': lng,
+          'timestamp': FieldValue.serverTimestamp(),
+        });
   }
 }

@@ -617,32 +617,53 @@ class _MapPreview extends StatelessWidget {
     }
 
     final center = LatLng(package.lastLat!, package.lastLng!);
+    final repo = context.read<PackageRepository>();
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
       child: SizedBox(
         height: 220,
-        child: FlutterMap(
-          options: MapOptions(initialCenter: center, initialZoom: 14),
-          children: [
-            TileLayer(
-              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-              userAgentPackageName: 'com.example.tracker_app',
-            ),
-            MarkerLayer(
-              markers: [
-                Marker(
-                  width: 40,
-                  height: 40,
-                  point: center,
-                  child: const Icon(
-                    Icons.location_on,
-                    color: Colors.red,
-                    size: 32,
+        child: StreamBuilder<List<LocationPoint>>(
+          stream: repo.watchLocationHistory(package.id),
+          builder: (context, snapshot) {
+            final points = snapshot.data ?? [];
+            final polyline = points
+                .map((point) => LatLng(point.lat, point.lng))
+                .toList();
+            final lastPoint = polyline.isNotEmpty ? polyline.last : center;
+            return FlutterMap(
+              options: MapOptions(initialCenter: lastPoint, initialZoom: 14),
+              children: [
+                TileLayer(
+                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  userAgentPackageName: 'com.example.tracker_app',
+                ),
+                if (polyline.length > 1)
+                  PolylineLayer(
+                    polylines: [
+                      Polyline(
+                        points: polyline,
+                        strokeWidth: 4,
+                        color: Colors.indigo,
+                      ),
+                    ],
                   ),
+                MarkerLayer(
+                  markers: [
+                    Marker(
+                      width: 40,
+                      height: 40,
+                      point: lastPoint,
+                      child: const Icon(
+                        Icons.location_on,
+                        color: Colors.red,
+                        size: 32,
+                      ),
+                    ),
+                  ],
                 ),
               ],
-            ),
-          ],
+            );
+          },
         ),
       ),
     );
