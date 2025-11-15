@@ -9,14 +9,13 @@
 - Flujo de autenticaciÃ³n completo (AuthGate, Login, Register) + AppShell con saludo y logout.
 - Capa de paquetes creada: entidad `Package`, repositorio Firebase y `PackageWatcherCubit` conectado a la UI con creaciÃ³n bÃ¡sica de paquetes.
 - Dashboards iniciales: admin puede asignar clientes/choferes, cambiar estados y cada rol ve sÃ³lo sus paquetes.
-- Chofer puede compartir ubicaciÃ³n actual usando Geolocator (actualiza `lastLat/lastLng`).
+- Chofer puede compartir ubicaciÃ³n actual, guardar historial (subcolecciÃ³n `locations`) y los clientes ven la ruta en un mapa a pantalla completa.
 
 ## PrÃ³ximos pasos inmediatos
 1. Pulir formularios de auth (reset password, feedback de errores especÃ­ficos).
-2. Mejorar detalle de paquetes (timeline, mapa con `google_maps_flutter`, filtros por estado/rol).
-3. Persistencia del tracking: historial de posiciones, intervalos automÃ¡ticos y soporte background en Android/iOS.
-4. Configurar notificaciones push (FCM) por cambio de estado y alertas.
-5. Plan de backend complementario (Cloud Functions/Supabase) para lÃ³gica avanzada y reportes/KPI.
+2. Persistencia del tracking en background (intervalos automÃ¡ticos, WorkManager/BackgroundFetch).
+3. Configurar notificaciones push (FCM) por cambio de estado y alertas de proximidad.
+4. Plan de backend complementario (Cloud Functions/Supabase) para lÃ³gica avanzada y reportes/KPI.
 
 ## Futuras iteraciones
 - Persistencia offline y reintentos en tracking.

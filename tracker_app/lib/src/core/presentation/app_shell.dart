@@ -7,9 +7,11 @@ import 'package:latlong2/latlong.dart';
 import '../../auth/domain/entities/app_user.dart';
 import '../../auth/domain/repositories/user_repository.dart';
 import '../../auth/presentation/bloc/auth_bloc.dart';
+import '../../packages/domain/entities/location_point.dart';
 import '../../packages/domain/entities/package.dart';
 import '../../packages/domain/repositories/package_repository.dart';
 import '../../packages/presentation/cubit/package_watcher_cubit.dart';
+import '../navigation/app_router.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
@@ -19,14 +21,11 @@ class AppShell extends StatefulWidget {
 }
 
 class _AppShellState extends State<AppShell> {
-  AppUser? _lastUser;
-
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final user = context.read<AuthBloc>().state.user;
-      _lastUser = user;
       context.read<PackageWatcherCubit>().watchForUser(user);
     });
   }
@@ -39,7 +38,6 @@ class _AppShellState extends State<AppShell> {
     return BlocListener<AuthBloc, AuthState>(
       listenWhen: (previous, current) => previous.user != current.user,
       listener: (context, state) {
-        _lastUser = state.user;
         context.read<PackageWatcherCubit>().watchForUser(state.user);
       },
       child: Scaffold(
@@ -469,9 +467,23 @@ class _PackageDetailSheetState extends State<_PackageDetailSheet> {
                 'Paquete ${widget.package.trackingId}',
                 style: Theme.of(context).textTheme.titleMedium,
               ),
-              IconButton(
-                icon: const Icon(Icons.close),
-                onPressed: () => Navigator.of(context).pop(),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.map_outlined),
+                    onPressed: () {
+                      Navigator.of(context).pushNamed(
+                        AppRouter.mapDetail,
+                        arguments: widget.package,
+                      );
+                    },
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
               ),
             ],
           ),
