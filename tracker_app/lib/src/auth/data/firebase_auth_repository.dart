@@ -4,6 +4,7 @@ import 'package:dartz/dartz.dart';
 
 import '../domain/entities/app_user.dart';
 import '../domain/repositories/auth_repository.dart';
+import 'models/app_user_model.dart';
 
 class FirebaseAuthRepository implements AuthRepository {
   FirebaseAuthRepository({FirebaseAuth? auth, FirebaseFirestore? firestore})
@@ -28,18 +29,14 @@ class FirebaseAuthRepository implements AuthRepository {
         .get();
 
     final data = doc.data();
-    final roleString = data?['role'] as String? ?? 'cliente';
-    final role = UserRole.values.firstWhere(
-      (r) => r.name == roleString,
-      orElse: () => UserRole.cliente,
-    );
-
-    return AppUser(
-      id: firebaseUser.uid,
-      email: firebaseUser.email ?? '',
-      displayName: firebaseUser.displayName,
-      role: role,
-    );
+    if (data == null) {
+      return AppUserModel(
+        id: firebaseUser.uid,
+        email: firebaseUser.email ?? '',
+        displayName: firebaseUser.displayName,
+      );
+    }
+    return AppUserModel.fromDoc(firebaseUser.uid, data);
   }
 
   @override

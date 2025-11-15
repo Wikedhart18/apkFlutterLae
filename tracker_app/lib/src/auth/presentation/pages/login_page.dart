@@ -45,6 +45,16 @@ class _LoginPageState extends State<LoginPage> {
         listener: (context, state) {
           if (state.status == AuthStatus.failure) {
             setState(() => _isSubmitting = false);
+            if (state.message != null) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(state.message!)),
+              );
+            }
+          } else if (state.status == AuthStatus.authenticated) {
+            setState(() => _isSubmitting = false);
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            }
           }
         },
         child: Padding(
