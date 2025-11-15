@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:geolocator/geolocator.dart';
 
 import '../../auth/domain/entities/app_user.dart';
 import '../../auth/domain/repositories/user_repository.dart';
@@ -327,10 +328,13 @@ class _PackageDetailSheetState extends State<_PackageDetailSheet> {
   List<AppUser> _drivers = [];
   bool _loadingDrivers = false;
   bool _saving = false;
+  bool _updatingLocation = false;
   String? _error;
 
   bool get _canUpdateStatus => widget.user.isAdmin || widget.user.isChofer;
   bool get _canAssignDriver => widget.user.isAdmin;
+  bool get _canSendLocation =>
+      widget.user.isChofer && widget.package.choferId == widget.user.id;
 
   @override
   void initState() {
@@ -403,6 +407,51 @@ class _PackageDetailSheetState extends State<_PackageDetailSheet> {
     if (mounted) Navigator.of(context).pop();
   }
 
+  Future<void> _sendCurrentLocation() async {
+    setState(() => _updatingLocation = true);
+    final repo = context.read<PackageRepository>();
+    String? message;
+    try {
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        message = 'Activa el GPS del dispositivo';
+        return;
+      }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        message = 'Permisos de ubicación denegados';
+        return;
+      }
+
+      final position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+      final result = await repo.updateLocation(
+        packageId: widget.package.id,
+        lat: position.latitude,
+        lng: position.longitude,
+      );
+      result.fold(
+        (error) => message = error,
+        (_) => message = 'Ubicación enviada',
+      );
+    } catch (e) {
+      message = 'No se pudo obtener la ubicación';
+    } finally {
+      setState(() => _updatingLocation = false);
+      if (message != null && mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message!)));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -472,6 +521,21 @@ class _PackageDetailSheetState extends State<_PackageDetailSheet> {
                     }),
                   ),
           const SizedBox(height: 16),
+          if (_canSendLocation)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: FilledButton.icon(
+                onPressed: _updatingLocation ? null : _sendCurrentLocation,
+                icon: _updatingLocation
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.my_location),
+                label: const Text('Compartir ubicación'),
+              ),
+            ),
           FilledButton.icon(
             onPressed: _saving ? null : _saveChanges,
             icon: _saving

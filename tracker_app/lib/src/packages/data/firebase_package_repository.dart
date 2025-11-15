@@ -24,23 +24,11 @@ class FirebasePackageRepository implements PackageRepository {
       query = query.where('clienteId', isEqualTo: user.id);
     }
 
-    return query
-        .snapshots()
-        .map((snapshot) {
-          // DEBUG: imprimir cantidad de paquetes por rol/usuario
-          // ignore: avoid_print
-          print(
-            'Paquetes para ${user.role.name} (${user.id}): ${snapshot.docs.length}',
-          );
-          return snapshot.docs
-              .map((doc) => _fromDoc(doc.id, doc.data()))
-              .toList(growable: false);
-        })
-        .handleError((error) {
-          // DEBUG: capturar errores del stream
-          // ignore: avoid_print
-          print('STREAM ERROR watchPackagesForUser: $error');
-        });
+    return query.snapshots().map(
+      (snapshot) => snapshot.docs
+          .map((doc) => _fromDoc(doc.id, doc.data()))
+          .toList(growable: false),
+    );
   }
 
   Package _fromDoc(String id, Map<String, dynamic> data) {
