@@ -13,6 +13,7 @@ import '../../packages/domain/repositories/package_repository.dart';
 import '../../packages/presentation/cubit/package_watcher_cubit.dart';
 import '../navigation/app_router.dart';
 import '../../tracking/background_tracking_service.dart';
+import '../../notifications/push_notifications_service.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
@@ -28,6 +29,12 @@ class _AppShellState extends State<AppShell> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final user = context.read<AuthBloc>().state.user;
       context.read<PackageWatcherCubit>().watchForUser(user);
+      // Inicializar subscripción de FCM en arranque si ya hay sesión
+      if (user != null) {
+        PushNotificationsService.instance.requestPermissionAndRegisterToken(
+          user.id,
+        );
+      }
     });
   }
 
@@ -46,6 +53,12 @@ class _AppShellState extends State<AppShell> {
           trackingService.start(user.id);
         } else {
           trackingService.stop();
+        }
+        final push = PushNotificationsService.instance;
+        if (user != null) {
+          push.requestPermissionAndRegisterToken(user.id);
+        } else {
+          push.dispose();
         }
       },
       child: Scaffold(
