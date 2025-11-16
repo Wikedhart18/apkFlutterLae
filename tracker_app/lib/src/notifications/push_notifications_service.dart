@@ -4,6 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 
+import 'local_notifications_service.dart';
+
 class PushNotificationsService {
   PushNotificationsService._();
   static final PushNotificationsService instance =
@@ -14,25 +16,31 @@ class PushNotificationsService {
 
   StreamSubscription<RemoteMessage>? _onMessageSub;
   StreamSubscription<String>? _onTokenRefreshSub;
+  String? _currentUserId;
 
   Future<void> init() async {
     if (kIsWeb) {
       // Web-push se configurará en una fase posterior (VAPID + service worker)
       return;
     }
+    // Inicializar notificaciones locales
+    await LocalNotificationsService.instance.initialize();
     // iOS: pedir permisos de visualización si hace falta
     await _messaging.setAutoInitEnabled(true);
     // Suscribir refresh de token
     await _onTokenRefreshSub?.cancel();
     _onTokenRefreshSub = _messaging.onTokenRefresh.listen((newToken) async {
       debugPrint('[FCM] onTokenRefresh: $newToken');
-      // No sabemos el userId aquí; se re-guardará al siguiente login o podemos
-      // mantenerlo con un setter si hiciera falta.
+      if (_currentUserId != null) {
+        await _saveToken(_currentUserId!, newToken);
+      }
     });
   }
 
   Future<void> requestPermissionAndRegisterToken(String userId) async {
     if (kIsWeb) return;
+
+    _currentUserId = userId;
 
     final settings = await _messaging.requestPermission(
       alert: true,
@@ -57,7 +65,16 @@ class PushNotificationsService {
     await _onMessageSub?.cancel();
     _onMessageSub = FirebaseMessaging.onMessage.listen((RemoteMessage msg) {
       debugPrint('[FCM] onMessage: ${msg.notification?.title}');
-      // Nota: para banner local podríamos integrar flutter_local_notifications más adelante
+      // Mostrar notificación local cuando la app está en foreground
+      final notification = msg.notification;
+      if (notification != null) {
+        LocalNotificationsService.instance.showNotification(
+          id: msg.hashCode,
+          title: notification.title ?? 'TrackPro',
+          body: notification.body ?? 'Nueva actualización',
+          payload: msg.data.toString(),
+        );
+      }
     });
     debugPrint('[FCM] token registrado para $userId: $token');
   }
@@ -65,6 +82,7 @@ class PushNotificationsService {
   Future<void> dispose() async {
     await _onMessageSub?.cancel();
     await _onTokenRefreshSub?.cancel();
+    _currentUserId = null;
   }
 
   Future<void> _saveToken(String userId, String token) async {
