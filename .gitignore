@@ -1,0 +1,39 @@
+# Global ignores
+.DS_Store
+.idea/
+.vscode/
+*.iml
+*.log
+.env
+
+# Flutter / Dart
+.dart_tool/
+.packages
+pubspec.lock
+build/
+
+# Android
+android/.gradle/
+android/app/build/
+
+# iOS
+ios/Pods/
+ios/Flutter/Flutter.framework/
+ios/Flutter/Flutter.podspec
+
+# Firebase local files
+firebase-debug.log
+
+# Functions (Node)
+tracker_app/functions/node_modules/
+tracker_app/functions/lib/
+tracker_app/functions/.env
+
+# Microservicio Render
+server/notify-service/node_modules/
+server/notify-service/.env
+
+# Generated maps / artifacts
+*.map
+
+
