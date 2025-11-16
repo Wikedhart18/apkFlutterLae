@@ -13,6 +13,7 @@ class PushNotificationsService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   StreamSubscription<RemoteMessage>? _onMessageSub;
+  StreamSubscription<String>? _onTokenRefreshSub;
 
   Future<void> init() async {
     if (kIsWeb) {
@@ -21,6 +22,13 @@ class PushNotificationsService {
     }
     // iOS: pedir permisos de visualización si hace falta
     await _messaging.setAutoInitEnabled(true);
+    // Suscribir refresh de token
+    await _onTokenRefreshSub?.cancel();
+    _onTokenRefreshSub = _messaging.onTokenRefresh.listen((newToken) async {
+      debugPrint('[FCM] onTokenRefresh: $newToken');
+      // No sabemos el userId aquí; se re-guardará al siguiente login o podemos
+      // mantenerlo con un setter si hiciera falta.
+    });
   }
 
   Future<void> requestPermissionAndRegisterToken(String userId) async {
@@ -51,10 +59,12 @@ class PushNotificationsService {
       debugPrint('[FCM] onMessage: ${msg.notification?.title}');
       // Nota: para banner local podríamos integrar flutter_local_notifications más adelante
     });
+    debugPrint('[FCM] token registrado para $userId: $token');
   }
 
   Future<void> dispose() async {
     await _onMessageSub?.cancel();
+    await _onTokenRefreshSub?.cancel();
   }
 
   Future<void> _saveToken(String userId, String token) async {
