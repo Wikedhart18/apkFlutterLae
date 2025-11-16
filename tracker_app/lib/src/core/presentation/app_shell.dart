@@ -14,6 +14,7 @@ import '../../packages/presentation/cubit/package_watcher_cubit.dart';
 import '../navigation/app_router.dart';
 import '../../tracking/background_tracking_service.dart';
 import '../../notifications/push_notifications_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
@@ -65,6 +66,12 @@ class _AppShellState extends State<AppShell> {
         appBar: AppBar(
           title: const Text('TrackPro LAE MVP v1.0.0'),
           actions: [
+            if (user != null && user.isChofer)
+              IconButton(
+                icon: const Icon(Icons.settings),
+                tooltip: 'Configurar frecuencia de tracking',
+                onPressed: () => _showTrackingFrequencyDialog(context),
+              ),
             if (user != null)
               IconButton(
                 icon: const Icon(Icons.logout),
@@ -75,7 +82,15 @@ class _AppShellState extends State<AppShell> {
         ),
         body: Padding(
           padding: const EdgeInsets.all(16),
-          child: _PackagesBody(user: user),
+          child: Column(
+            children: [
+              if (user != null && user.isChofer) ...[
+                _TrackingStatusIndicator(userId: user.id),
+                const SizedBox(height: 12),
+              ],
+              Expanded(child: _PackagesBody(user: user)),
+            ],
+          ),
         ),
         floatingActionButton: (user != null && (user.isAdmin || !user.isChofer))
             ? FloatingActionButton.extended(
@@ -238,6 +253,169 @@ class _AppShellState extends State<AppShell> {
       },
     );
   }
+
+  Future<void> _showTrackingFrequencyDialog(BuildContext context) async {
+    final trackingService = BackgroundTrackingService.instance;
+    final currentFrequency = await trackingService.getFrequency();
+
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setState) {
+          TrackingFrequency selected = currentFrequency;
+          return AlertDialog(
+            title: const Text('Frecuencia de tracking'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: TrackingFrequency.values.map((freq) {
+                return RadioListTile<TrackingFrequency>(
+                  title: Text(freq.displayName),
+                  value: freq,
+                  groupValue: selected,
+                  onChanged: (value) {
+                    setState(() => selected = value!);
+                  },
+                );
+              }).toList(),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('Cancelar'),
+              ),
+              FilledButton(
+                onPressed: () async {
+                  await trackingService.setFrequency(selected);
+                  if (ctx.mounted) {
+                    Navigator.of(ctx).pop();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Frecuencia actualizada: ${selected.displayName}',
+                        ),
+                      ),
+                    );
+                  }
+                },
+                child: const Text('Guardar'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _TrackingStatusIndicator extends StatefulWidget {
+  const _TrackingStatusIndicator({required this.userId});
+
+  final String userId;
+
+  @override
+  State<_TrackingStatusIndicator> createState() =>
+      _TrackingStatusIndicatorState();
+}
+
+class _TrackingStatusIndicatorState extends State<_TrackingStatusIndicator> {
+  TrackingFrequency? _frequency;
+  DateTime? _lastAutoUpdate;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFrequency();
+    _watchLastUpdate();
+  }
+
+  Future<void> _loadFrequency() async {
+    final freq = await BackgroundTrackingService.instance.getFrequency();
+    if (mounted) {
+      setState(() => _frequency = freq);
+    }
+  }
+
+  void _watchLastUpdate() {
+    // Escuchar el último paquete asignado para ver cuándo fue la última actualización automática
+    FirebaseFirestore.instance
+        .collection('packages')
+        .where('choferId', isEqualTo: widget.userId)
+        .orderBy('lastAutoUpdate', descending: true)
+        .limit(1)
+        .snapshots()
+        .listen((snapshot) {
+          if (snapshot.docs.isNotEmpty) {
+            final data = snapshot.docs.first.data();
+            final timestamp = data['lastAutoUpdate'] as Timestamp?;
+            if (timestamp != null && mounted) {
+              setState(() => _lastAutoUpdate = timestamp.toDate());
+            }
+          }
+        });
+  }
+
+  String _formatLastUpdate() {
+    if (_lastAutoUpdate == null)
+      return 'Aún no hay actualizaciones automáticas';
+    final now = DateTime.now();
+    final diff = now.difference(_lastAutoUpdate!);
+    if (diff.inMinutes < 1) {
+      return 'Actualizado hace ${diff.inSeconds} segundos';
+    } else if (diff.inHours < 1) {
+      return 'Actualizado hace ${diff.inMinutes} minutos';
+    } else {
+      return 'Actualizado hace ${diff.inHours} horas';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      color: Colors.blue.shade50,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            Icon(
+              Icons.location_on,
+              color: _lastAutoUpdate != null ? Colors.green : Colors.orange,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Tracking automático ${_lastAutoUpdate != null ? "activo" : "iniciando..."}',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _frequency != null
+                        ? 'Frecuencia: ${_frequency!.displayName}'
+                        : 'Cargando...',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  if (_lastAutoUpdate != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      _formatLastUpdate(),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Colors.grey.shade700,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _PackagesBody extends StatelessWidget {
@@ -286,13 +464,20 @@ class _PackagesBody extends StatelessWidget {
                 ),
               );
             }
-            return ListView.separated(
-              itemCount: state.packages.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
-              itemBuilder: (context, index) {
-                final pkg = state.packages[index];
-                return _PackageCard(package: pkg, currentUser: user!);
+            return RefreshIndicator(
+              onRefresh: () async {
+                // Forzar recarga de paquetes
+                context.read<PackageWatcherCubit>().watchForUser(user);
+                await Future.delayed(const Duration(milliseconds: 500));
               },
+              child: ListView.separated(
+                itemCount: state.packages.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                itemBuilder: (context, index) {
+                  final pkg = state.packages[index];
+                  return _PackageCard(package: pkg, currentUser: user!);
+                },
+              ),
             );
         }
       },
