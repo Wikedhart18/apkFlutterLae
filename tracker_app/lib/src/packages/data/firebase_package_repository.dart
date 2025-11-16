@@ -5,6 +5,7 @@ import 'package:tracker_app/src/auth/domain/entities/app_user.dart';
 import '../domain/entities/package.dart';
 import '../domain/entities/location_point.dart';
 import '../domain/repositories/package_repository.dart';
+import '../../notifications/notification_webhook_client.dart';
 
 class FirebasePackageRepository implements PackageRepository {
   FirebasePackageRepository({FirebaseFirestore? firestore})
@@ -74,7 +75,14 @@ class FirebasePackageRepository implements PackageRepository {
         'updatedAt': FieldValue.serverTimestamp(),
       });
       final snapshot = await doc.get();
-      return right(_fromDoc(doc.id, snapshot.data()!));
+      final created = _fromDoc(doc.id, snapshot.data()!);
+      // Notificar creación/asignación (silencioso si no hay webhook)
+      await NotificationWebhookClient.notifyPackageStatus(
+        clienteId: created.clienteId,
+        packageId: created.id,
+        estado: created.estado.name,
+      );
+      return right(created);
     } catch (e) {
       return left('Error creando paquete');
     }
@@ -94,7 +102,13 @@ class FirebasePackageRepository implements PackageRepository {
         'updatedAt': FieldValue.serverTimestamp(),
       });
       final doc = await _firestore.collection(_collection).doc(packageId).get();
-      return right(_fromDoc(doc.id, doc.data()!));
+      final updated = _fromDoc(doc.id, doc.data()!);
+      await NotificationWebhookClient.notifyPackageStatus(
+        clienteId: updated.clienteId,
+        packageId: updated.id,
+        estado: updated.estado.name,
+      );
+      return right(updated);
     } catch (e) {
       return left('No se pudo asignar el chofer');
     }
@@ -111,7 +125,13 @@ class FirebasePackageRepository implements PackageRepository {
         'updatedAt': FieldValue.serverTimestamp(),
       });
       final doc = await _firestore.collection(_collection).doc(packageId).get();
-      return right(_fromDoc(doc.id, doc.data()!));
+      final updated = _fromDoc(doc.id, doc.data()!);
+      await NotificationWebhookClient.notifyPackageStatus(
+        clienteId: updated.clienteId,
+        packageId: updated.id,
+        estado: updated.estado.name,
+      );
+      return right(updated);
     } catch (e) {
       return left('No se pudo actualizar el estado');
     }
@@ -140,7 +160,13 @@ class FirebasePackageRepository implements PackageRepository {
             'timestamp': FieldValue.serverTimestamp(),
           });
       final doc = await _firestore.collection(_collection).doc(packageId).get();
-      return right(_fromDoc(doc.id, doc.data()!));
+      final updated = _fromDoc(doc.id, doc.data()!);
+      await NotificationWebhookClient.notifyPackageStatus(
+        clienteId: updated.clienteId,
+        packageId: updated.id,
+        estado: updated.estado.name,
+      );
+      return right(updated);
     } catch (e) {
       return left('No se pudo actualizar la ubicación');
     }
