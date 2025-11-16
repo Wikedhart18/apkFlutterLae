@@ -76,5 +76,16 @@ class PushNotificationsService {
       'platform': defaultTargetPlatform.name,
     }, SetOptions(merge: true));
   }
+
+  // Helper para permitir listas de tareas silenciosas
+  static Future<void> notify(List<Future<void> Function()> tasks) async {
+    for (final t in tasks) {
+      try {
+        await t();
+      } catch (_) {
+        // ignorar errores del webhook
+      }
+    }
+  }
 }
 
